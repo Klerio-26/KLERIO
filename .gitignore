@@ -12,7 +12,7 @@ dist/
 !.env.example
 
 # Données locales / build
-storage/
+/storage/
 prisma/dev.db
 prisma/dev.db-journal
 prisma/*.db

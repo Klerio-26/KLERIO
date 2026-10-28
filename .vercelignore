@@ -2,7 +2,7 @@ node_modules
 .next
 out
 .vercel
-storage
+/storage
 prisma/dev.db
 prisma/*.db
 prisma/*.db-journal
