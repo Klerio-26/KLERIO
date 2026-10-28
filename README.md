@@ -232,3 +232,5 @@ Tests : `src/lib/quota/engine.test.ts` (20 cas, dont changements d'heure, 31 fé
 
 Projet de démonstration. Les marques et contenus tiers appartiennent à leurs propriétaires.
 >>>>>>> a39aa7b (First version)
+
+<!-- Deployment check: Git integration active. -->
