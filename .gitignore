@@ -28,3 +28,6 @@ Thumbs.db
 
 # Exception explicite : modèle de variables d'environnement
 !.env.example
+
+.vercel
+.env*

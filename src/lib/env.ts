@@ -33,6 +33,8 @@ const schema = z.object({
     z.string().url().optional()
   ),
   S3_FORCE_PATH_STYLE: z.string().default("false"),
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  BLOB_STORE_ID: z.string().optional(),
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional()
 });
@@ -56,6 +58,9 @@ export const aiEnabled =
 export const stripeEnabled = Boolean(env.STRIPE_SECRET_KEY);
 export const s3Enabled = Boolean(env.S3_BUCKET && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY);
 export const onVercel = process.env.VERCEL === "1";
+export const blobEnabled = Boolean(
+  env.BLOB_READ_WRITE_TOKEN || (onVercel && env.BLOB_STORE_ID)
+);
 
 export const stripePriceIds: Record<string, string | undefined> = {
   "pro:monthly": env.STRIPE_PRICE_PRO_MONTHLY,

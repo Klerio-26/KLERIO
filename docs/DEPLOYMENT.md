@@ -24,7 +24,7 @@ En production, configurez **S3** : le volume local ne doit servir qu'au dévelop
 ## Option B — Vercel (PostgreSQL + S3)
 
 1. **Créer la base** : Vercel → Storage → Marketplace → PostgreSQL (Neon) ou Supabase. Récupérer l'URL **poolée** (`DATABASE_URL`) et l'URL **directe/non poolée** (`DIRECT_URL`).
-2. **Créer le stockage** : S3 AWS `eu-west-3`, Scaleway, OVH ou Cloudflare R2 (UE). Créer un bucket privé et des clés limitées à ce bucket.
+2. **Créer le stockage** : le plus simple sur Vercel est `vercel storage create klerio-files --type blob --access private --region fra1` puis `vercel storage connect klerio-files --yes`. Alternative : S3 AWS `eu-west-3`, Scaleway, OVH ou Cloudflare R2 (UE).
 3. **Variables** : les ajouter dans Project → Settings → Environment Variables (Production + Preview). Voir la liste ci-dessous.
 4. **Déployer** : Vercel utilise `vercel-build`, qui exécute `prisma generate && prisma migrate deploy && next build`.
 5. **Compte initial** : le seed de démonstration est désactivé sur Vercel (il écrit des fichiers locaux). Créez le premier compte via `/register`. **Ne lancez pas le seed de démonstration contre la base de production** : ses documents seraient stockés localement et resteraient inaccessibles. Les comptes de démonstration ne concernent que le développement local.
@@ -45,10 +45,17 @@ En production, configurez **S3** : le volume local ne doit servir qu'au dévelop
 | `SESSION_SECRET` | Secret de signature/aléa des sessions (32+ caractères). |
 | `KLERIO_MASTER_KEY` | Clé maître AES-256 (32 octets base64) qui protège les clés de fichiers du coffre. |
 | `CRON_SECRET` | Secret qui protège `/api/cron/reminders` ; Vercel Cron l'envoie automatiquement. |
-| `S3_REGION` | Région du bucket (doit être dans l'UE, ex. `eu-west-3`). |
-| `S3_BUCKET` | Nom du bucket privé qui stocke les fichiers chiffrés. |
-| `S3_ACCESS_KEY_ID` | Clé d'accès S3 limitée au bucket. |
-| `S3_SECRET_ACCESS_KEY` | Secret de la clé d'accès S3. |
+
+### Stockage (un seul mode suffit)
+
+| Variable | Rôle |
+|---|---|
+| `BLOB_STORE_ID` | Identifiant du store Vercel Blob privé, ajouté automatiquement par `vercel storage connect`. |
+| `BLOB_READ_WRITE_TOKEN` | Alternative statique à l'OIDC pour Vercel Blob (hors Vercel ou développement). |
+| `S3_BUCKET` | Nom d'un bucket S3 privé, alternative à Vercel Blob. |
+| `S3_REGION` | Région du bucket S3 (UE, ex. `eu-west-3`). |
+| `S3_ACCESS_KEY_ID` | Clé d'accès S3. |
+| `S3_SECRET_ACCESS_KEY` | Secret S3. |
 
 ### Recommandées / optionnelles
 

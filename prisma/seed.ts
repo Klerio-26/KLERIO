@@ -211,9 +211,9 @@ async function main() {
       "Le seed de démonstration est désactivé sur Vercel : il écrit des fichiers de test en local. Lancez-le depuis votre machine avec DATABASE_URL/DIRECT_URL de production si nécessaire."
     );
   }
-  if (process.env.S3_BUCKET) {
+  if (process.env.S3_BUCKET || process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error(
-      "Le seed de démonstration crée des fichiers locaux. Lancez-le sans S3_BUCKET configuré, ou créez les comptes de démonstration sans documents."
+      "Le seed de démonstration crée des fichiers locaux. Lancez-le sans stockage objet configuré, ou créez les comptes de démonstration sans documents."
     );
   }
   console.log("→ Klerio : initialisation de la démonstration");

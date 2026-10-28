@@ -1,7 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ["@prisma/client", "bcryptjs", "tesseract.js", "@aws-sdk/client-s3", "web-push"],
+  serverExternalPackages: [
+    "@prisma/client",
+    "bcryptjs",
+    "tesseract.js",
+    "@aws-sdk/client-s3",
+    "@vercel/blob",
+    "web-push"
+  ],
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb"

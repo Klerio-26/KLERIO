@@ -67,7 +67,7 @@ Il envoie les rappels dus, les alertes anticipées, et purge la corbeille arriv�
 
 ### Coffre-fort
 - Chiffrement **enveloppe AES-256-GCM** : une clé aléatoire par fichier, chiffrée par la clé maître.
-- Stockage objet S3 (région UE) en production ; repli local en développement. Adaptateur compatible AWS S3, Scaleway, OVH, MinIO, Cloudflare R2.
+- Stockage objet Vercel Blob privé (région `fra1`) ou S3 compatible UE en production ; repli local en développement.
 - Catégories système + catégories personnalisées, tags, échéances, recherche plein texte (titre, tags, texte extrait).
 - Aperçu PDF/image servi uniquement à une session autorisée, export, corbeille 30 jours, suppression définitive.
 - Déduplication par empreinte SHA-256 pour un même propriétaire.
@@ -137,7 +137,7 @@ Détails : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) et [`docs/DESIGN.md`](
 | Sujet | Choix | Pourquoi |
 |---|---|---|
 | Base de données | **PostgreSQL** (Vercel Postgres / Neon, Supabase, ou Docker en local) | Compatible serverless, migrations Prisma versionnées, pooler + connexion directe. |
-| Stockage | **S3 compatible, région UE** en production ; local en développement | Vercel n'a pas de système de fichiers persistant. L'adaptateur S3 est sélectionné automatiquement si `S3_BUCKET` est renseigné. |
+| Stockage | **Vercel Blob privé (fra1)** ou S3 compatible UE ; local en développement | Vercel n'a pas de système de fichiers persistant. Priorité : S3 si `S3_BUCKET`, sinon Vercel Blob si `BLOB_STORE_ID`, sinon local. |
 | Auth | Maison (bcrypt + sessions en base + TOTP) | Contrôle total du cycle de session, des audits et de la 2FA. OAuth Apple/Google est prévu mais non branché faute de clés. |
 | IA sans clé | Moteur local déterministe | Tous les parcours restent testables ; les quotas sont réellement débités. |
 | OCR | **Tesseract.js côté serveur** (`/api/ocr`) + saisie manuelle | OCR français gratuit, sans quota. Le premier appel télécharge le modèle (~15 Mo) dans `storage/ocr-cache`. |
