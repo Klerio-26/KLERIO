@@ -6,13 +6,5 @@
       "path": "/api/cron/reminders",
       "schedule": "0 7 * * *"
     }
-  ],
-  "functions": {
-    "src/app/api/ocr/route.ts": {
-      "maxDuration": 60
-    },
-    "src/app/api/ai/[action]/route.ts": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
