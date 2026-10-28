@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: klerio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: klerio
+      POSTGRES_PASSWORD: klerio_dev_password
+      POSTGRES_DB: klerio
+    ports:
+      - "5432:5432"
+    volumes:
+      - klerio_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U klerio -d klerio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  klerio_pgdata:

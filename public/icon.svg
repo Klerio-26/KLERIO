@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Klerio">
+  <rect width="512" height="512" rx="112" fill="#1e5754"/>
+  <path d="M150 118h150l62 62v214H150V118Z" fill="#f6f4ee"/>
+  <path d="M300 118l62 62h-62v-62Z" fill="#aedbd3"/>
+  <path d="M198 238h116M198 286h116M198 334h76" stroke="#1e5754" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="342" cy="356" r="38" fill="#fb5f12"/>
+  <path d="M328 356l10 10 20-22" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

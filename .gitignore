@@ -1,0 +1,30 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.vercel/
+.turbo/
+
+# Secrets : ne jamais versionner. Le modèle .env.example reste versionné.
+.env
+.env*
+!.env.example
+
+# Données locales / build
+storage/
+prisma/dev.db
+prisma/dev.db-journal
+prisma/*.db
+prisma/*.db-journal
+*.tsbuildinfo
+coverage/
+next-env.d.ts
+
+# Divers
+*.log
+.DS_Store
+Thumbs.db
+
+# Exception explicite : modèle de variables d'environnement
+!.env.example

@@ -1,0 +1,419 @@
+// Klerio — schéma de données.
+// PostgreSQL (Vercel Postgres / Neon, Supabase, ou tout PostgreSQL hébergé UE).
+// Les champs JSON sont stockés en String pour rester simples à migrer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  name              String?
+  locale            String    @default("fr")
+  timezone          String    @default("Europe/Paris")
+  role              String    @default("user") // user | support
+  emailVerifiedAt   DateTime?
+  twoFactorSecret   String?
+  twoFactorEnabled  Boolean   @default(false)
+  onboardingDone    Boolean   @default(false)
+  stripeCustomerId  String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  subscription   Subscription?
+  sessions       Session[]
+  documents      Document[]       @relation("DocumentOwner")
+  scans          Scan[]
+  reminders      Reminder[]
+  notifications  Notification[]
+  aiRequests     AiRequest[]
+  auditLogs      AuditLog[]       @relation("Actor")
+  invoices       Invoice[]
+  membership     FamilyMember?
+  adminGroups    FamilyGroup[]    @relation("FamilyAdmin")
+  categories     Category[]
+  consents       Consent[]
+  invitations    FamilyInvitation[] @relation("InvitedBy")
+  pushSubs       PushSubscription[]
+
+  @@index([deletedAt])
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  ip        String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Plan {
+  id            String  @id
+  name          String
+  priceMonthly  Int // centimes TTC
+  priceYearly   Int
+  storageBytes  Float
+  maxMembers    Int
+  features      String // JSON array
+  sortOrder     Int     @default(0)
+  active        Boolean @default(true)
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  planId               String    @default("standard")
+  billingInterval      String    @default("monthly") // monthly | yearly
+  status               String    @default("active") // active | past_due | canceled | incomplete
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  anchorDay            Int       @default(1)
+  cancelAtPeriodEnd    Boolean   @default(false)
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+}
+
+model FamilyGroup {
+  id                String    @id @default(cuid())
+  name              String
+  adminId           String
+  planId            String    @default("family")
+  storageLimitBytes Float     @default(53687091200) // 50 Go
+  quotaPolicy       String    @default("shared") // shared | per_member
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  admin             User      @relation("FamilyAdmin", fields: [adminId], references: [id])
+  members           FamilyMember[]
+  invitations       FamilyInvitation[]
+  documents         Document[]
+  reminders         Reminder[]
+
+  @@index([adminId])
+}
+
+model FamilyMember {
+  id                String    @id @default(cuid())
+  groupId           String
+  userId            String    @unique
+  role              String    @default("member") // admin | member
+  storageLimitBytes Float? // limite optionnelle par membre
+  joinedAt          DateTime  @default(now())
+  group             FamilyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+}
+
+model FamilyInvitation {
+  id        String    @id @default(cuid())
+  groupId   String
+  email     String
+  tokenHash String    @unique
+  invitedBy String
+  expiresAt DateTime
+  acceptedAt DateTime?
+  createdAt DateTime  @default(now())
+  group     FamilyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  inviter   User      @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  @@index([email])
+  @@index([groupId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  ownerId   String?
+  groupId   String?
+  slug      String
+  label     String
+  icon      String   @default("folder")
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  owner     User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@index([ownerId])
+  @@index([slug])
+}
+
+model Document {
+  id           String    @id @default(cuid())
+  ownerId      String
+  groupId      String?
+  categoryId   String?
+  title        String
+  originalName String
+  mimeType     String
+  sizeBytes    Float
+  pageCount    Int       @default(1)
+  storageKey   String
+  wrappedKey   String
+  sha256       String
+  tags         String    @default("[]") // JSON array
+  visibility   String    @default("private") // private | family
+  ocrText      String?
+  dueDate      DateTime?
+  status       String    @default("active") // active | trash
+  deletedAt    DateTime?
+  purgeAt      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  owner        User       @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  group        FamilyGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  category     Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  scans        Scan[]
+  reminders    Reminder[]
+
+  @@index([ownerId, status])
+  @@index([groupId, visibility])
+  @@index([sha256])
+  @@index([dueDate])
+}
+
+model Scan {
+  id         String   @id @default(cuid())
+  userId     String
+  documentId String?
+  pageCount  Int
+  sizeBytes  Float    @default(0)
+  source     String   @default("camera") // camera | import
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model QuotaCounter {
+  id          String   @id @default(cuid())
+  ownerType   String // user | group
+  ownerId     String
+  type        String // scan_pages | deep_analysis_pages | explanations | email_generations | assisted_fills | ai_sorting
+  periodKey   String // lifetime | 2026-10 | 2026-W44
+  used        Int      @default(0)
+  limit       Int
+  periodStart DateTime
+  periodEnd   DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@unique([ownerType, ownerId, type, periodKey])
+  @@index([ownerType, ownerId, type])
+}
+
+model StorageAccount {
+  id         String   @id @default(cuid())
+  ownerType  String // user | group
+  ownerId    String
+  usedBytes  Float    @default(0)
+  limitBytes Float
+  state      String   @default("normal") // normal | warning | critical | full | read_only
+  graceEndsAt DateTime?
+  updatedAt  DateTime @updatedAt
+
+  @@unique([ownerType, ownerId])
+}
+
+model CreditWallet {
+  id        String   @id @default(cuid())
+  ownerType String // user | group
+  ownerId   String
+  balance   Int      @default(0) // en crédits (1 crédit = 0,10 €)
+  updatedAt DateTime @updatedAt
+
+  @@unique([ownerType, ownerId])
+}
+
+model CreditTransaction {
+  id        String   @id @default(cuid())
+  walletId  String
+  delta     Int
+  reason    String
+  refId     String?
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([walletId, createdAt])
+}
+
+model UsageRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  ownerType    String
+  ownerId      String
+  type         String
+  quantity     Int
+  fromIncluded Int
+  creditsCost  Int
+  periodKey    String
+  note         String?
+  refundedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([ownerType, ownerId, type])
+}
+
+model AiRequest {
+  id             String   @id @default(cuid())
+  userId         String
+  type           String // analyze | deep_analyze | email | translate | fill | autofill | classify
+  model          String
+  provider       String   @default("mock") // anthropic | mock
+  inputChars     Int      @default(0)
+  outputTokens   Int      @default(0)
+  costMicros     Int      @default(0) // coût estimé en millionièmes d'euro
+  quotaType      String?
+  quotaDebited   Int      @default(0)
+  creditsDebited Int      @default(0)
+  status         String   @default("ok") // ok | error
+  latencyMs      Int      @default(0)
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Reminder {
+  id          String    @id @default(cuid())
+  userId      String
+  groupId     String?
+  documentId  String?
+  title       String
+  notes       String?
+  dueAt       DateTime
+  recurrence  String    @default("none") // none | daily | weekly | monthly | yearly
+  channels    String    @default("[\"in_app\"]") // JSON
+  visibility  String    @default("personal") // personal | family
+  status      String    @default("pending") // pending | done | cancelled
+  advanceDays String    @default("[]") // JSON, ex. [7,1]
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group       FamilyGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  document    Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dueAt])
+  @@index([groupId, visibility])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  reminderId String?
+  title      String
+  body       String
+  channel    String   @default("in_app") // in_app | email | push
+  status     String   @default("pending") // pending | sent | failed
+  sentAt     DateTime?
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model OfficialLink {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  label       String
+  url         String
+  domain      String
+  category    String
+  description String?
+  verifiedAt  DateTime
+  active      Boolean  @default(true)
+}
+
+model Invoice {
+  id             String    @id @default(cuid())
+  userId         String
+  stripeInvoiceId String   @unique
+  number         String?
+  amountCents    Int
+  taxCents       Int       @default(0)
+  currency       String    @default("eur")
+  status         String
+  hostedUrl      String?
+  pdfUrl         String?
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  ip         String?
+  metadata   String   @default("{}")
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("Actor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([action])
+}
+
+model Consent {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String // terms | privacy | ai_processing | marketing
+  version   String
+  grantedAt DateTime  @default(now())
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}
+
+model AppSetting {
+  key   String @id
+  value String
+}
